@@ -274,12 +274,36 @@ if __name__ == "__main__":
                             "PID":pat_id,
                             "Date":item["resource"]["effectiveDateTime"],
                             "LOINC": "",
-                            "Value":item["resource"]["valueQuantity"]["value"]
+                            "Value":item["resource"]["valueQuantity"]["value"],
+                            "Lower_bound": "",
+                            "Upper_bound": "",
+                            "Interpretation_Code": [],
+                            "Interpretation_Display": []
                         }
                         for i in range(len(item["resource"]["code"]["coding"])):
                             if item["resource"]["code"]["coding"][i]["system"] == loinc_system:
                                 value_set["LOINC"] = item["resource"]["code"]["coding"][i]["code"]
                                 break
+                        
+                        if "referenceRange" in item["resource"]:
+                            for i in range(len(item["resource"]["referenceRange"])):
+                                if len(item["resource"]["referenceRange"]) > 1:
+                                    print(item["resource"]["referenceRange"])
+                                    quit()
+                                if "low" in item["resource"]["referenceRange"][i]:
+                                    value_set["Lower_bound"] = item["resource"]["referenceRange"][i]["low"]["value"]
+                                if "high" in item["resource"]["referenceRange"][i]:
+                                    value_set["Upper_bound"] = item["resource"]["referenceRange"][i]["high"]["value"]
+
+                        interpret_code, interpret_display = [], []
+                        if "interpretation" in item["resource"]:
+                            for int in range(len(item["resource"]["interpretation"])):
+                                for cod in range(len(item["resource"]["interpretation"][int]["coding"])):
+                                    interpret_code.append(item["resource"]["interpretation"][int]["coding"][cod]["code"])
+                                    interpret_display.append(item["resource"]["interpretation"][int]["coding"][cod]["display"])
+
+                        value_set["Interpretation_Code"] = interpret_code
+                        value_set["Interpretation_Display"] = interpret_display
                         
                         # data = [{"PID":pat_id, "Date":item["resource"]["effectiveDateTime"], "LOINC":item["resource"]["code"]["coding"][0]["code"], "Value":item["resource"]["valueQuantity"]["value"]}]
                         output_csv.extend([value_set])
@@ -293,7 +317,7 @@ if __name__ == "__main__":
                     f.write(json.dumps(bundle, indent=4))
 
         with open(f"output/csv/{s}_output.csv", 'w', newline="") as csvfile:
-            writer = csv.DictWriter(csvfile, fieldnames=["PID", "Date", "LOINC", "Value"])
+            writer = csv.DictWriter(csvfile, fieldnames=["PID", "Date", "LOINC", "Value", "Lower_bound", "Upper_bound", "Interpretation_Code", "Interpretation_Display"])
             writer.writeheader()
             writer.writerows(output_csv)
 
